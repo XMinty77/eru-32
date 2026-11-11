@@ -1,0 +1,8 @@
+# Build outputs
+build/
+
+# Editor settings (kept local)
+.vscode/
+
+# Python bytecode
+__pycache__/
