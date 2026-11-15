@@ -54,3 +54,26 @@ The 32 integer registers `x0`–`x31`: two asynchronous read ports and one synch
 - At each rising edge of `clk_i` with `we_i` high, `wdata_i` is stored at `waddr_i`. A write to address 0 is discarded.
 - A read of the address being written in the same cycle gives the old value until the edge and the new value after it. There is no bypass from `wdata_i`.
 - No reset: entries are unspecified until written.
+
+## Immediate generator (`rtl/immgen.sv`)
+
+Forms the sign-extended immediate of the instruction, in the format the decoder selects.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `op_i` | Input | `imm_op_e` (3) | Immediate format |
+| `instr_imm_i` | Input | 25 (`[31:7]`) | Instruction bits 31 to 7 |
+| `imm_o` | Output | 32 | Immediate |
+
+Formats (`imm_op_e` in `rtl/eru_pkg.sv`); `instr[k]` is `instr_imm_i[k]`, and "sign" is `instr[31]`:
+
+| op | code | `imm_o` |
+|---|---|---|
+| I | `000` | `[31:11]` sign, `[10:0]` = `instr[30:20]` |
+| S | `001` | `[31:11]` sign, `[10:5]` = `instr[30:25]`, `[4:0]` = `instr[11:7]` |
+| B | `010` | `[31:12]` sign, `[11]` = `instr[7]`, `[10:5]` = `instr[30:25]`, `[4:1]` = `instr[11:8]`, `[0]` = 0 |
+| U | `011` | `[31:12]` = `instr[31:12]`, `[11:0]` = 0 |
+| J | `100` | `[31:20]` sign, `[19:12]` = `instr[19:12]`, `[11]` = `instr[20]`, `[10:1]` = `instr[30:21]`, `[0]` = 0 |
+
+- Combinational. The opcode, `instr[6:0]`, is not an input: the decoder reads it. Connect the port as `instr[31:7]`; ports connect by position, so a 32-bit signal would be truncated.
+- Other codes are unused, and `imm_o` is undefined for them.

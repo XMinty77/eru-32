@@ -11,4 +11,8 @@ package eru_pkg;
         SUB     = 4'b1000,
         SRA     = 4'b1101
     } alu_op_e;
+
+    typedef enum logic [2:0] {
+        I, S, B, U, J
+    } imm_op_e;
 endpackage
