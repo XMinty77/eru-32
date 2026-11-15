@@ -11,7 +11,7 @@
 # =================================================
 
 # Packages, in dependency order: each one is compiled before anything that imports it.
-PKGS    :=
+PKGS    := rtl/eru_pkg.sv
 # Packages used only by benches.
 TB_PKGS :=
 # All other RTL files: modules.
