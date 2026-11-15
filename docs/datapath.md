@@ -6,3 +6,4 @@ The units and the wiring between them. The port tables are in `contracts.md`; th
 - **PC + 4:** a dedicated adder. Its output is the default next PC and the link value for JAL and JALR.
 - **PC + imm:** a dedicated adder. Its output is the target for branches and JAL.
 - **Branch condition:** the ALU compares rs1 and rs2 and gives `eq_o` and `lt_o`.
+- **Register file:** port A reads rs1 (`instr[19:15]`), port B reads rs2 (`instr[24:20]`), and the write address is rd (`instr[11:7]`). The decoder drives `we_i`.

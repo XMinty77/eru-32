@@ -33,3 +33,24 @@ Operations, with `op_i = {funct7[5], funct3}` (`alu_op_e` in `rtl/eru_pkg.sv`):
 - Shifts use only `b[4:0]`.
 - `eq_o` is valid for every op. `lt_o` is defined only when `op_i` is SLT or SLTU.
 - Other codes are unused, and `result_o` is undefined for them.
+
+## Register file (`rtl/regfile.sv`)
+
+The 32 integer registers `x0`–`x31`: two asynchronous read ports and one synchronous write port.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `clk_i` | Input | 1 | Clock |
+| `raddr_a_i` | Input | 5 | Read port A address |
+| `rdata_a_o` | Output | 32 | Read port A data |
+| `raddr_b_i` | Input | 5 | Read port B address |
+| `rdata_b_o` | Output | 32 | Read port B data |
+| `we_i` | Input | 1 | Write enable |
+| `waddr_i` | Input | 5 | Write address |
+| `wdata_i` | Input | 32 | Write data |
+
+- Storage holds `x1`–`x31` only; there is no entry for `x0`.
+- Reads are combinational: `rdata_a_o` and `rdata_b_o` show the entry at `raddr_a_i` and `raddr_b_i`. A read of address 0 gives 0.
+- At each rising edge of `clk_i` with `we_i` high, `wdata_i` is stored at `waddr_i`. A write to address 0 is discarded.
+- A read of the address being written in the same cycle gives the old value until the edge and the new value after it. There is no bypass from `wdata_i`.
+- No reset: entries are unspecified until written.
