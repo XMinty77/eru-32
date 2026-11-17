@@ -17,6 +17,10 @@ The decoder reads the class from the opcode, `instr[6:0]`. Every other section i
 | `0110111` | LUI |
 | `0010111` | AUIPC |
 | `1101111` | JAL |
+| `0001111` | FENCE |
+| `1110011` | ECALL, EBREAK |
+
+FENCE, ECALL and EBREAK are no-ops: they write nothing and go to `PC + 4`.
 
 ## ALU op
 
@@ -26,7 +30,7 @@ The decoder reads the class from the opcode, `instr[6:0]`. Every other section i
 | I-type ALU | `{funct3 == 3'b101 ? instr[30] : 1'b0, funct3}` |
 | loads, stores, JALR, AUIPC, JAL | ADD |
 | branches | `funct3[1] ? SLTU : SLT` |
-| LUI | don't care |
+| LUI, FENCE, ECALL, EBREAK | don't care |
 
 In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. BEQ and BNE use only `eq_o`, which doesn't depend on `op`.
 
@@ -36,7 +40,7 @@ In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. B
 |---|---|
 | R-type, I-type ALU, loads, JALR, stores, branches | RS1 (`regfile.rdata_a_o`) |
 | AUIPC, JAL | PC |
-| LUI | don't care |
+| LUI, FENCE, ECALL, EBREAK | don't care |
 
 ## ALU operand B select
 
@@ -44,7 +48,7 @@ In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. B
 |---|---|
 | R-type, branches | RS2 (`regfile.rdata_b_o`) |
 | I-type ALU, loads, JALR, stores, AUIPC, JAL | IMM (`immgen.imm_o`) |
-| LUI | don't care |
+| LUI, FENCE, ECALL, EBREAK | don't care |
 
 ## Immediate format
 
@@ -55,14 +59,14 @@ In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. B
 | branches | B |
 | LUI, AUIPC | U |
 | JAL | J |
-| R-type | don't care |
+| R-type, FENCE, ECALL, EBREAK | don't care |
 
 ## Register write enable
 
 | instructions | `we` |
 |---|---|
 | R-type, I-type ALU, loads, JALR, LUI, AUIPC, JAL | 1 |
-| stores, branches | 0 |
+| stores, branches, FENCE, ECALL, EBREAK | 0 |
 
 ## Register write data select
 
@@ -72,7 +76,7 @@ In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. B
 | loads | LOAD (the extended load data) |
 | JALR, JAL | PC4 (`PC + 4`) |
 | LUI | IMM (`immgen.imm_o`) |
-| stores, branches | don't care |
+| stores, branches, FENCE, ECALL, EBREAK | don't care |
 
 ## Data memory enables
 
@@ -86,7 +90,7 @@ In I-type, `instr[30]` is `imm[10]`, so it's used only to tell SRAI from SRLI. B
 
 | instructions | `pc_sel` |
 |---|---|
-| R-type, I-type ALU, loads, stores, LUI, AUIPC | PC4 (`PC + 4`) |
+| R-type, I-type ALU, loads, stores, LUI, AUIPC, FENCE, ECALL, EBREAK | PC4 (`PC + 4`) |
 | branches | BRANCH (`PC + immgen.imm_o` if the branch condition holds, else `PC + 4`) |
 | JALR | JALR (`{alu.result_o[31:1], 1'b0}`) |
 | JAL | JAL (`alu.result_o`) |

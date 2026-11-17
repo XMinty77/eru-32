@@ -99,6 +99,9 @@ module decoder
                 regfile_we_o = '1;
             end
 
+            FENCE: imm_op_o = imm_op_e'('x); // FENCE is no-op for eru-32
+            SYSTEM: imm_op_o = imm_op_e'('x); // Temporarily no-op (v1.0.0)
+
             default: imm_op_o = imm_op_e'('x);
         endcase
     end

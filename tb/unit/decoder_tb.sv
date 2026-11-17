@@ -59,6 +59,8 @@ module decoder_tb;
             7'b0110111: class_name = "LUI";
             7'b0010111: class_name = "AUIPC";
             7'b1101111: class_name = "JAL";
+            7'b0001111: class_name = "FENCE (no-op)";
+            7'b1110011: class_name = "SYSTEM (no-op)";
             default:    class_name = "unknown opcode";
         endcase
     endfunction
@@ -164,7 +166,7 @@ module decoder_tb;
                 e_wb_sel     = WB_PC4;
                 e_pc_sel     = PC_JAL;
             end
-            default: ; // unknown opcode: the defaults above
+            default: ; // FENCE, SYSTEM (no-ops) and unknown opcodes: the defaults above
         endcase
     endtask
 
@@ -254,9 +256,9 @@ module decoder_tb;
         check(32'h0080_00EF, "jal x1, 8");
         check(32'hFFDF_F0EF, "jal x1, -4");
         check(32'h0000_0013, "nop (addi x0, x0, 0)");
-        check(32'h0FF0_000F, "fence (unknown opcode)");
-        check(32'h0000_0073, "ecall (unknown opcode)");
-        check(32'h0010_0073, "ebreak (unknown opcode)");
+        check(32'h0FF0_000F, "fence (no-op)");
+        check(32'h0000_0073, "ecall (no-op)");
+        check(32'h0010_0073, "ebreak (no-op)");
         check(32'h0000_0000, "all zeros (unknown opcode)");
         check(32'hFFFF_FFFF, "all ones (unknown opcode)");
 

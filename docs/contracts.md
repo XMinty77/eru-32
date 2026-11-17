@@ -181,6 +181,8 @@ Opcodes it recognizes, from `instr_i[6:0]` (`opcode_e` in `rtl/eru_pkg.sv`):
 | LUI | `0110111` | LUI |
 | AUIPC | `0010111` | AUIPC |
 | JAL | `1101111` | JAL |
+| FENCE | `0001111` | FENCE |
+| SYSTEM | `1110011` | ECALL, EBREAK |
 
 Selects (in `rtl/eru_pkg.sv`). `imm_op_e` is tabled in the immediate generator section, `alu_op_e` in the ALU section.
 

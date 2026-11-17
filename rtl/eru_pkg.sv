@@ -21,7 +21,8 @@ package eru_pkg;
         ALU_I   = 7'b0010011,
         LOAD    = 7'b0000011,
         JALR    = 7'b1100111,
-        // TODO: FENCE, SYSTEM (ECALL+EBREAK)
+        FENCE   = 7'b0001111,
+        SYSTEM  = 7'b1110011,
 
         // S-type
         STORE   = 7'b0100011,
