@@ -14,8 +14,8 @@
 PKGS    := rtl/eru_pkg.sv
 # Packages used only by benches.
 TB_PKGS :=
-# All other RTL files: modules.
-RTL     := $(filter-out $(PKGS),$(wildcard rtl/*.sv))
+# All other RTL files: modules, including the small helpers in rtl/utils/.
+RTL     := $(filter-out $(PKGS),$(wildcard rtl/*.sv rtl/utils/*.sv))
 # The core's top module, for lint and synth-check.
 TOP     := core
 

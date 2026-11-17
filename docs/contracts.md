@@ -77,3 +77,76 @@ Formats (`imm_op_e` in `rtl/eru_pkg.sv`); `instr[k]` is `instr_imm_i[k]`, and "s
 
 - Combinational. The opcode, `instr[6:0]`, is not an input: the decoder reads it. Connect the port as `instr[31:7]`; ports connect by position, so a 32-bit signal would be truncated.
 - Other codes are unused, and `imm_o` is undefined for them.
+
+## Word aligner (`rtl/utils/word_align.sv`)
+
+Moves data between the low bytes of a value and its byte lanes in a 32-bit memory word, and forms the byte enables of the access.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `offset_i` | Input | 2 | Byte offset of the access in the word (`addr[1:0]`) |
+| `size_i` | Input | 2 | Access size: `00` byte, `01` half word, `10` word |
+| `wdata_i` | Input | 32 | Data to write, in its low bytes |
+| `wdata_o` | Output | 32 | `wdata_i` moved up to its lanes: `wdata_i << (8 * offset_i)` |
+| `be_o` | Output | 4 | Byte enables: `0001`, `0011` or `1111` for the size, shifted left by `offset_i` |
+| `rdata_i` | Input | 32 | Word as read from memory |
+| `rdata_o` | Output | 32 | `rdata_i` moved down from its lanes: `rdata_i >> (8 * offset_i)`, zero fill |
+
+- Combinational. The two directions are independent: `wdata_o` and `be_o` don't depend on `rdata_i`, and `rdata_o` doesn't depend on `size_i` or `wdata_i`.
+- `size_i` matches `funct3[1:0]` of loads and stores. `size_i = 11` is unused, and `be_o` is undefined for it.
+- Bits and enables shifted past byte 3 are dropped, so an access that crosses the word gives only its bytes inside the word.
+
+## PC adders (`rtl/utils/pc_adder.sv`)
+
+The two dedicated adders on the PC.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `pc_i` | Input | 32 | PC |
+| `imm_i` | Input | 32 | Immediate |
+| `pc_plus4_o` | Output | 32 | `pc_i + 4` |
+| `pc_plus_imm_o` | Output | 32 | `pc_i + imm_i` |
+
+- Combinational. Both sums wrap modulo 2^32.
+
+## Branch condition (`rtl/utils/branch_cond.sv`)
+
+Whether a branch is taken, from its `funct3` and the ALU flags.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `funct3_i` | Input | 3 | The branch's `funct3` |
+| `eq_i` | Input | 1 | `alu.eq_o` |
+| `lt_i` | Input | 1 | `alu.lt_o` (the decoder picks SLT or SLTU) |
+| `taken_o` | Output | 1 | 1 if the branch is taken |
+
+| `funct3` | instruction | `taken_o` |
+|---|---|---|
+| `000` | BEQ | `eq_i` |
+| `001` | BNE | `!eq_i` |
+| `100` | BLT | `lt_i` |
+| `101` | BGE | `!lt_i` |
+| `110` | BLTU | `lt_i` |
+| `111` | BGEU | `!lt_i` |
+
+- Combinational. `funct3` `010` and `011` are unused, and `taken_o` is undefined for them.
+
+## Load extender (`rtl/utils/load_ext.sv`)
+
+Extends the loaded byte, half word or word to 32 bits, from the load's `funct3`.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `funct3_i` | Input | 3 | The load's `funct3` |
+| `data_i` | Input | 32 | Loaded data in its low bytes (`word_align.rdata_o`) |
+| `data_o` | Output | 32 | `data_i` extended |
+
+| `funct3` | instruction | `data_o` |
+|---|---|---|
+| `000` | LB | `data_i[7:0]`, sign-extended |
+| `001` | LH | `data_i[15:0]`, sign-extended |
+| `010` | LW | `data_i` |
+| `100` | LBU | `data_i[7:0]`, zero-extended |
+| `101` | LHU | `data_i[15:0]`, zero-extended |
+
+- Combinational. `funct3` `011`, `110` and `111` are unused, and `data_o` is undefined for them.
