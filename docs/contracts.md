@@ -221,3 +221,36 @@ Selects (in `rtl/eru_pkg.sv`). `imm_op_e` is tabled in the immediate generator s
 - The outputs depend only on `instr_i[6:0]`, `funct3` (`instr_i[14:12]`) and `instr_i[30]`. `alu_op_o` is formed as `control.md` gives it even when the result is a code the ALU doesn't use.
 - For any other opcode: `data_we_o`, `data_re_o` and `regfile_we_o` are 0, `alu_op_o` is ADD, `alu_a_sel_o` is SEL_RS1, `alu_b_sel_o` is SEL_IMM, `wb_sel_o` is WB_ALU and `pc_sel_o` is PC_PC4. `imm_op_o` is undefined.
 - `data_we_o` and `data_re_o` are never 1 together.
+
+## Core (`rtl/core.sv`)
+
+The core's ports to the outside. Each target's top module supplies the memory behind them.
+
+### Instruction port
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `instr_addr_o` | Output | 32 | Byte address of the next instruction: the next-PC value the PC register loads at the coming edge |
+| `instr_rdata_i` | Input | 32 | The instruction at the PC |
+
+- The memory is 32 bits wide and uses `instr_addr_o[31:2]` as the word address.
+- Reads are synchronous and happen at every rising edge: the word at `instr_addr_o` appears on `instr_rdata_i` after that edge, the same edge at which the PC register loads that address.
+- While `rst_i` is high, `instr_addr_o` is 0, the reset vector, so the word at 0 is on `instr_rdata_i` when reset drops.
+
+### Data port
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `data_addr_o` | Output | 32 | Byte address |
+| `data_re_o` | Output | 1 | Read enable, high for loads |
+| `data_we_o` | Output | 1 | Write enable, high for stores |
+| `data_be_o` | Output | 4 | Byte enables for stores |
+| `data_wdata_o` | Output | 32 | Write data |
+| `data_rdata_i` | Input | 32 | Read data |
+
+- The memory is 32 bits wide and uses `data_addr_o[31:2]` as the word address.
+- `data_re_o` and `data_we_o` are never high together. With both low, the memory is not accessed.
+- `data_we_o` is low while `rst_i` is high.
+- A load takes two cycles: `data_re_o` is high in the first only, and the loaded word is written to the register file in the second.
+- Reads are synchronous: with `data_re_o` high at a rising edge, the word at `data_addr_o` appears on `data_rdata_i` after that edge. `data_rdata_i` is defined only in the cycle after such an edge. Loads read the whole word; `data_be_o` is ignored.
+- Writes are synchronous: at a rising edge with `data_we_o` high, for each `i` with `data_be_o[i]` high, `data_wdata_o[8i+7:8i]` is written to byte `i` of the word (byte address `{data_addr_o[31:2], 2'(i)}`).
