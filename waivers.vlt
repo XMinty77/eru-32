@@ -1,0 +1,11 @@
+// Lint warnings accepted on purpose; make lint and make lint-<unit> pass this file.
+`verilator_config
+
+// A convenience field of the instruction that core.sv declares but doesn't use yet.
+lint_off -rule UNUSEDSIGNAL -file "*rtl/core.sv" -match "*'funct7'*"
+
+// The decoder reads only the opcode, funct3 and instr[30].
+lint_off -rule UNUSEDSIGNAL -file "*rtl/decoder.sv" -match "*'instr_i'*"
+
+// A unit lint elaborates one unit, so package constants other units use show as unused.
+lint_off -rule UNUSEDPARAM -file "*rtl/eru_pkg.sv"

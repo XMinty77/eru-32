@@ -2,9 +2,10 @@
 # make                 run every unit bench (same as make unit)
 # make alu             compile and run one unit bench, tb/unit/alu_tb.sv, with Icarus
 # make alu ARGS=+foo   pass plusargs to the bench
-# make lint            Verilator lint of the RTL, top module $(TOP)
+# make lint            Verilator lint of the RTL, top module $(TOP), with waivers.vlt
 # make lint-alu        Verilator lint of one unit bench with the RTL
-# make synth-check     yosys generic synthesis of the RTL, to catch SV it can't read
+# make synth-check     yosys generic synthesis of the RTL (slang frontend, in the
+#                      IIC-OSIC-TOOLS image), to catch SV it can't read
 # make clean           delete build/
 # A bench that fails ($fatal) makes make stop with an error.
 # Unit benches are named after what they test; don't name one after a target above.
@@ -26,8 +27,14 @@ BUILD     := build
 IVERILOG  := iverilog -g2012 -Wall
 VVP       := vvp -n
 VERILATOR := verilator -Wall --timing
-YOSYS     := yosys
+# synth-check needs yosys with the slang plugin (local yosys can't read packages);
+# the IIC-OSIC-TOOLS image has it. Override with YOSYS=yosys if yours has slang.
+CHIPTOOLS := hpretl/iic-osic-tools:latest
+YOSYS     := docker run --rm --user $(shell id -u):$(shell id -g) -v $(CURDIR):/w -w /w \
+             --entrypoint /foss/tools/bin/yosys $(CHIPTOOLS)
 ARGS      :=
+# Lint warnings accepted on purpose.
+WAIVERS   := waivers.vlt
 
 .PHONY: all unit lint synth-check clean $(UNITS) $(addprefix lint-,$(UNITS))
 
@@ -49,17 +56,17 @@ $(UNITS): %: $(BUILD)/unit/%_tb.vvp
 
 lint:
 	@test -n "$(RTL)" || { echo "No RTL in rtl/ yet"; exit 1; }
-	$(VERILATOR) --lint-only --top-module $(TOP) $(PKGS) $(RTL)
+	$(VERILATOR) --lint-only --top-module $(TOP) $(WAIVERS) $(PKGS) $(RTL)
 
 $(addprefix lint-,$(UNITS)): lint-%:
-	$(VERILATOR) --lint-only --top-module $*_tb $(PKGS) $(TB_PKGS) $(RTL) tb/unit/$*_tb.sv
+	$(VERILATOR) --lint-only --top-module $*_tb $(WAIVERS) $(PKGS) $(TB_PKGS) $(RTL) tb/unit/$*_tb.sv
 
 # ---------------- synthesis check (yosys) ----------------
 
 synth-check: | $(BUILD)
 	@test -n "$(RTL)" || { echo "No RTL in rtl/ yet"; exit 1; }
-	$(YOSYS) -q -l $(BUILD)/synth-check.log \
-	  -p 'read_verilog -sv $(PKGS) $(RTL); synth -top $(TOP); stat'
+	$(YOSYS) -m slang -q -l $(BUILD)/synth-check.log \
+	  -p 'read_slang $(PKGS) $(RTL) --top $(TOP); synth -top $(TOP); stat'
 	@echo "synth-check: OK (log in $(BUILD)/synth-check.log)"
 
 # ---------------- housekeeping ----------------
