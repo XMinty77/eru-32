@@ -1,10 +1,8 @@
 # Datapath
 
-The units and the wiring between them. The port tables are in `contracts.md`; this document refers to ports by name. The top module is `rtl/core.sv`: it instantiates the units, the PC register, the adders and the muxes, and holds no logic of its own.
+The units and the wiring between them. What each instruction class gives each destination, and the tables indexed by `funct3` (load data, store byte enables, branch condition), are in `datapath.fods`; this document holds only what that table doesn't. The port tables are in `contracts.md`, and this document refers to ports by name. The top module is `rtl/core.sv`: it instantiates the units and holds the PC register, the adders, the muxes and the expressions in the table that no unit computes.
 
-- **ALU operands:** `a` is rs1 or the PC; `b` is rs2 or the immediate. The decoder drives both selects.
-- **PC + 4:** a dedicated adder. Its output is the default next PC and the link value for JAL and JALR.
-- **PC + imm:** a dedicated adder. Its output is the target for branches and JAL.
-- **Branch condition:** the ALU compares rs1 and rs2 and gives `eq_o` and `lt_o`.
-- **Immediate generator:** takes the instruction and the format select, which the decoder drives.
-- **Register file:** port A reads rs1 (`instr[19:15]`), port B reads rs2 (`instr[24:20]`), and the write address is rd (`instr[11:7]`). The decoder drives `we_i`.
+- **Decoder:** a unit of its own (`rtl/decoder.sv`). It takes the instruction and drives every control signal; how it forms each is in `control.md`.
+- **Adders:** PC + 4 and PC + imm are dedicated adders, not the ALU. These are the `PC + 4` and `PC + immgen.imm_o` entries in the table.
+- **ALU operands:** `a` is rs1 or the PC; `b` is rs2 or the immediate.
+- **Naming:** each unit's instance is named after its module (`alu`, `regfile`, `immgen`, `decoder`). Ports are flat, with no interfaces or struct bundles. A wire between units is named after the output port that drives it: the instance name, an underscore, then the port name without `_o`. For example, `alu.result_o` drives `alu_result`, and `regfile.rdata_a_o` drives `regfile_rdata_a`. A wire formed in `core.sv` that feeds a unit's input is named the instance name, an underscore, then the port name without `_i`: the mux into `alu.a_i` drives `alu_a`. When a unit has an input and an output of the same name apart from the suffix (`word_align.wdata_i` and `wdata_o`), both wires keep the suffix: `word_align_wdata_i` and `word_align_wdata_o`.

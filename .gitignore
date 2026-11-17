@@ -6,3 +6,6 @@ build/
 
 # Python bytecode
 __pycache__/
+
+# LibreOffice lock files
+.~lock.*#
