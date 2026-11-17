@@ -1,7 +1,7 @@
 module immgen (
-    input  eru_pkg::imm_op_e    op_i,
-    input  logic [31:7]         instr_imm_i,
-    output logic [31:0]         imm_o
+    input  eru_pkg::imm_op_e            op_i,
+    input  logic                [31:7]  instr_imm_i,
+    output logic                [31:0]  imm_o
 );
     import eru_pkg::*;
 

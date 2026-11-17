@@ -150,3 +150,74 @@ Extends the loaded byte, half word or word to 32 bits, from the load's `funct3`.
 | `101` | LHU | `data_i[15:0]`, zero-extended |
 
 - Combinational. `funct3` `011`, `110` and `111` are unused, and `data_o` is undefined for them.
+
+## Decoder (`rtl/decoder.sv`)
+
+Forms the core's control signals from the instruction.
+
+| Port | Direction | Width | Description |
+|---|---|---|---|
+| `instr_i` | Input | 32 | The instruction |
+| `imm_op_o` | Output | `imm_op_e` (3) | Immediate format, to `immgen.op_i` |
+| `data_we_o` | Output | 1 | Data memory write enable |
+| `data_re_o` | Output | 1 | Data memory read enable |
+| `regfile_we_o` | Output | 1 | Register write enable, to `regfile.we_i` |
+| `alu_op_o` | Output | `alu_op_e` (4) | ALU operation, to `alu.op_i` |
+| `alu_a_sel_o` | Output | `alu_a_sel_e` (1) | ALU operand A select |
+| `alu_b_sel_o` | Output | `alu_b_sel_e` (1) | ALU operand B select |
+| `wb_sel_o` | Output | `wb_sel_e` (2) | Register write data select |
+| `pc_sel_o` | Output | `pc_sel_e` (2) | Next PC select |
+
+Opcodes it recognizes, from `instr_i[6:0]` (`opcode_e` in `rtl/eru_pkg.sv`):
+
+| opcode | code | class |
+|---|---|---|
+| ALU_R | `0110011` | R-type |
+| ALU_I | `0010011` | I-type ALU |
+| LOAD | `0000011` | loads |
+| JALR | `1100111` | JALR |
+| STORE | `0100011` | stores |
+| BRANCH | `1100011` | branches |
+| LUI | `0110111` | LUI |
+| AUIPC | `0010111` | AUIPC |
+| JAL | `1101111` | JAL |
+
+Selects (in `rtl/eru_pkg.sv`). `imm_op_e` is tabled in the immediate generator section, `alu_op_e` in the ALU section.
+
+`alu_a_sel_e`:
+
+| select | code | operand A |
+|---|---|---|
+| SEL_RS1 | `0` | `regfile.rdata_a_o` |
+| SEL_PC | `1` | PC |
+
+`alu_b_sel_e`:
+
+| select | code | operand B |
+|---|---|---|
+| SEL_RS2 | `0` | `regfile.rdata_b_o` |
+| SEL_IMM | `1` | `immgen.imm_o` |
+
+`wb_sel_e`:
+
+| select | code | register write data |
+|---|---|---|
+| WB_ALU | `00` | `alu.result_o` |
+| WB_LOAD | `01` | The extended load data |
+| WB_PC4 | `10` | `PC + 4` |
+| WB_IMM | `11` | `immgen.imm_o` |
+
+`pc_sel_e`:
+
+| select | code | next PC |
+|---|---|---|
+| PC_PC4 | `00` | `PC + 4` |
+| PC_BRANCH | `01` | `PC + immgen.imm_o` if the branch condition holds, else `PC + 4` |
+| PC_JALR | `10` | `{alu.result_o[31:1], 1'b0}` |
+| PC_JAL | `11` | `alu.result_o` |
+
+- Combinational.
+- For each recognized opcode, every output takes the value `control.md` gives its class. Where `control.md` says "don't care", that output is undefined.
+- The outputs depend only on `instr_i[6:0]`, `funct3` (`instr_i[14:12]`) and `instr_i[30]`. `alu_op_o` is formed as `control.md` gives it even when the result is a code the ALU doesn't use.
+- For any other opcode: `data_we_o`, `data_re_o` and `regfile_we_o` are 0, `alu_op_o` is ADD, `alu_a_sel_o` is SEL_RS1, `alu_b_sel_o` is SEL_IMM, `wb_sel_o` is WB_ALU and `pc_sel_o` is PC_PC4. `imm_op_o` is undefined.
+- `data_we_o` and `data_re_o` are never 1 together.
